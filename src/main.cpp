@@ -1,6 +1,7 @@
 #include <Arduino.h>
 #include <Encoder.h>
 
+// Motor and Encoder Pins
 const int motor_pin_1 = 5;  // pul+
 const int motor_pin_2 = 4;  // pul-
 const int motor_pin_3 = 3;  // dir+
@@ -11,13 +12,7 @@ const int encoder_pin_2 = 19;
 Encoder myEnc(encoder_pin_1, encoder_pin_2);
 long oldPosition = -999;
 
-// put function declarations here:
-void stepCW(int steps);
-void stepCCW(int steps);
-void getCurrentPosition();
-
 void setup() {
-  // put your setup code here, to run once:
   pinMode(motor_pin_1, OUTPUT);
   pinMode(motor_pin_2, OUTPUT);
   pinMode(motor_pin_3, OUTPUT);
@@ -26,18 +21,45 @@ void setup() {
 }
 
 void loop() {
-  // put your main code here, to run repeatedly:
-  if (Serial.available() > 0) {
-    char input = Serial.read();
-    if (input == 'a') {
-      stepCW(200);
-    } else if (input == 'b') {
-      stepCCW(200);
+  if (Serial.available() >= 3) {
+    byte command = Serial.read();
+    int angle = Serial.read() << 8;  // High byte
+    angle |= Serial.read();          // Low byte
+
+    switch (command) {
+      case 0b001:
+        stepCCW(200);
+        sendAcknowledgement(0b001);
+        break;
+      case 0b010:
+        stepCW(200);
+        sendAcknowledgement(0b010);
+        break;
+      case 0b011:
+        stopMotor();
+        sendAcknowledgement(0b011);
+        break;
+      case 0b100:
+        returnToOrigin();
+        sendAcknowledgement(0b100);
+        break;
+      case 0b101:
+        setStartAngle(angle);
+        sendAcknowledgement(0b101);
+        break;
+      case 0b110:
+        setEndAngle(angle);
+        sendAcknowledgement(0b110);
+        break;
     }
   }
 }
 
-// put function definitions here:
+void sendAcknowledgement(byte command) {
+  Serial.write(command);
+  getCurrentPosition();  // Send the current position back
+}
+
 void getCurrentPosition() {
   long newPosition = myEnc.read();
   if (newPosition != oldPosition) {
@@ -105,5 +127,21 @@ void stepCCW(int steps) {
     digitalWrite(motor_pin_4, LOW);
     getCurrentPosition();
     delay(delay_time);
-  }  // each step takes 40ms to complete
+  }
+}
+
+void stopMotor() {
+  // Implementation to stop the motor
+}
+
+void returnToOrigin() {
+  // Implementation to return to the original position
+}
+
+void setStartAngle(int angle) {
+  // Implementation to set the start angle
+}
+
+void setEndAngle(int angle) {
+  // Implementation to set the end angle
 }
